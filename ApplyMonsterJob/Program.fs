@@ -10,50 +10,58 @@ open System.Configuration
 [<EntryPoint>]
 let main argv =
     let applyToKeyword keyword = 
+            printfn "start applying %A" keyword
+            let getApplyJobUrl (jobId) =
+                printf "http://my.monster.com.sg/application_confirmation.html?action=apply&job=%d&from=" jobId
+
+            let loginUrl = @"https://my.monster.com.sg/login.html"
+    
+            use driver = new FirefoxDriver()
+            driver.Manage().Timeouts().ImplicitlyWait(TimeSpan.FromSeconds(10.0)) |> ignore
+
+            driver.Url <- loginUrl
+            let user = driver.FindElementById("BodyContent:txtUsername")
+            let password = driver.FindElementById("BodyContent_txtPassword")
+            let useEmailCheckbox = driver.FindElementByName("checkbox")
+            let submit = driver.FindElementByName("submit")
+
+            user.SendKeys(ConfigurationSettings.AppSettings.Item("username"))
+            password.SendKeys(ConfigurationSettings.AppSettings.Item("password"))
+            submit.Click();
+
+            driver.FindElementById("profileimg") |> ignore
+
+            printfn "logged in."
         
-        printfn "start applying %A" keyword
-        let getApplyJobUrl (jobId) =
-            printf "http://my.monster.com.sg/application_confirmation.html?action=apply&job=%d&from=" jobId
+            let searchUrl = "http://jobsearch.monster.com.sg/search.html"
+            driver.Url <- searchUrl
+            let searchBox = driver.FindElementByCssSelector("#fts_id")
+            searchBox.Clear();
 
-        let loginUrl = @"https://my.monster.com.sg/login.html"
+            searchBox.SendKeys(keyword) |> ignore
+
+            let last30DaysCheckBox = driver.FindElementByCssSelector("#day30");
+            last30DaysCheckBox.Click()
+
+            let dontIncludeSalaryDescriptionCheckBox = driver.FindElementByCssSelector("#ans")
+            dontIncludeSalaryDescriptionCheckBox.Click()
+
+            let searchButton = driver.FindElementByCssSelector(".ns_findbtn")
+            searchButton.Click()
+
+            let applyJobCheckboxes = driver.FindElementsByName("job")
+
+            let c = applyJobCheckboxes.Count
+            for abc in applyJobCheckboxes
+                do abc.Click()
     
-        use driver = new FirefoxDriver()
-        driver.Manage().Timeouts().ImplicitlyWait(TimeSpan.FromSeconds(10.0)) |> ignore
-
-        driver.Url <- loginUrl
-        let user = driver.FindElementById("BodyContent:txtUsername")
-        let password = driver.FindElementById("BodyContent_txtPassword")
-        let useEmailCheckbox = driver.FindElementByName("checkbox")
-        let submit = driver.FindElementByName("submit")
-
-        user.SendKeys(ConfigurationSettings.AppSettings.Item("username"))
-        password.SendKeys(ConfigurationSettings.AppSettings.Item("password"))
-        submit.Click();
-
-        driver.FindElementById("profileimg") |> ignore
-
-        printfn "logged in."
-    
-        let searchBox = driver.FindElementByCssSelector("#fts_id")
-        searchBox.Clear();
-
-        searchBox.SendKeys(keyword) |> ignore
-
-        let searchButton = driver.FindElementByCssSelector("table.bg_purple1 > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(3) > input:nth-child(2)")
-        searchButton.Click()
-
-        let applyJobCheckboxes = driver.FindElementsByName("job")
-
-        let c = applyJobCheckboxes.Count
-        for abc in applyJobCheckboxes
-            do abc.Click()
-    
-        let applyJobSubmit = driver.FindElementByCssSelector(@"#dd_ajax_float > table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > input:nth-child(1)")
-        applyJobSubmit.Click()
-        let resultPane = driver.FindElementByClassName("bg_green1")
-        printfn "%A" resultPane.Text
-    
-
+            let applyJobSubmit = driver.FindElementByCssSelector(".ns_reg_btn")
+            applyJobSubmit.Click()
+            try
+                let resultPane = driver.FindElementByClassName("bg_green1")
+                printfn "%A" resultPane.Text
+            with
+            | _ -> printfn "apply job submit error for %A" keyword
 
     let keywords = 
         ConfigurationSettings.AppSettings.Item("keywords").Split [|';'|]
