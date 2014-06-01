@@ -16,7 +16,7 @@ let main argv =
 
             let loginUrl = @"https://my.monster.com.sg/login.html"
     
-            use driver = new FirefoxDriver()
+            use driver = new PhantomJSDriver()
             driver.Manage().Timeouts().ImplicitlyWait(TimeSpan.FromSeconds(10.0)) |> ignore
 
             driver.Url <- loginUrl
@@ -70,7 +70,6 @@ let main argv =
 
     keywords |> Array.iter applyToKeyword
     
-    printfn "completed, press any key to continue..."
-    Console.ReadLine() |> ignore
+    printfn "completed job"
 
     0 // return an integer exit code
